@@ -109,13 +109,13 @@ public class Solver {
     }
 
     private class SNode implements Comparable<SNode> {
-        private Board bd;
-        private SNode prnode;
+        private final Board bd;
+        private final SNode prnode;
         private int moves;
 
         public SNode(SNode node, Board bd) {
             this.prnode = node;
-            this.bd = new Board(bd);
+            this.bd = bd;
             if (node != null)
                 moves = node.moves + 1;
         }

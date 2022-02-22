@@ -4,12 +4,11 @@
  *  Last modified:     October 16, 1842
  **************************************************************************** */
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 public class Board {
-    private int[][] tiles;
+    private final int[][] tiles;
     private final int dim;
     private int zeroro, zeroco, hamming, manhattan;
     // create a board from an n-by-n array of tiles,
@@ -24,25 +23,10 @@ public class Board {
                 if (tmp == 0) {
                     zeroro = i;
                     zeroco = j;
-                }
-                if (tmp == 0)
                     continue;
+                }
                 if (tmp != (dim * i + j + 1)) hamming++;
                 manhattan += Math.abs((tmp - 1) / dim - i) + Math.abs((tmp - 1) % dim - j);
-            }
-        }
-    }
-
-    public Board(Board bd) {
-        dim = bd.dim;
-        zeroro = bd.zeroro;
-        zeroco = bd.zeroco;
-        hamming = bd.hamming;
-        manhattan = bd.manhattan;
-        tiles = new int[dim][dim];
-        for (int i = 0; i < dim; i++) {
-            for (int j = 0; j < dim; j++) {
-                tiles[i][j] = bd.tiles[i][j];
             }
         }
     }
@@ -88,21 +72,28 @@ public class Board {
         if (y.getClass() != this.getClass()) return false;
         Board b = (Board) y;
         if (this.dim != b.dim) return false;
-        for (int i = 0; i < dim; i++) {
-            for (int j = 0; j < dim; j++) {
-                if (this.tiles[i][j] != b.tiles[i][j]) return false;
-            }
-        }
-        return true;
+        return Arrays.deepEquals(tiles, b.tiles);
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
-        return new Iterable<Board>() {
-            public Iterator<Board> iterator() {
-                return new BoradIt();
+        ArrayList<Board> neighbors = new ArrayList<>();
+        int[][] directions = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
+        for (int[] direction : directions) {
+            int xx = zeroro + direction[0];
+            int yy = zeroco + direction[1];
+            if (valid(xx, yy)) {
+                int[][] tmp = new int[dim][dim];
+                for (int i = 0; i < dim; i++)
+                    for (int j = 0; j < dim; j++) {
+                        tmp[i][j] = tiles[i][j];
+                    }
+                tmp[xx][yy] = 0;
+                tmp[zeroro][zeroco] = tiles[xx][yy];
+                neighbors.add(new Board(tmp));
             }
-        };
+        }
+        return neighbors;
     }
 
     // a board that is obtained by exchanging any pair of tiles
@@ -111,80 +102,23 @@ public class Board {
         for (int i = 0; i < dim; i++) {
             arr[i] = Arrays.copyOf(tiles[i], tiles[i].length);
         }
-        for (int i = 0; i < dim - 1; i++) {
-            for (int j = 0; j < dim - 1; j++) {
-                if (tiles[i][j] != 0 && tiles[i + 1][j + 1] != 0) {
-                    arr[i][j] = tiles[i + 1][j + 1];
-                    arr[i + 1][j + 1] = tiles[i][j];
-                    return new Board(arr);
-                }
-            }
+        if (zeroro == 0 && zeroco == 0) {
+            arr[0][dim - 1] = tiles[1][dim - 1];
+            arr[1][dim - 1] = tiles[0][dim - 1];
         }
-        return null;
+        else if (zeroro == 0 && zeroco == dim - 1) {
+            arr[0][0] = tiles[1][0];
+            arr[1][0] = tiles[0][0];
+        }
+        else {
+            arr[0][0] = tiles[0][dim - 1];
+            arr[0][dim - 1] = tiles[0][0];
+        }
+        return new Board(arr);
     }
-    private class BoradIt implements Iterator<Board> {
-        private short status;
-        private short num;
 
-        public BoradIt() {
-            if (valid(zeroro - 1)) num++;
-            if (valid(zeroro + 1)) num++;
-            if (valid(zeroco + 1)) num++;
-            if (valid(zeroco - 1)) num++;
-        }
-
-        public boolean hasNext() {
-            if (num == 0) return false;
-            return true;
-        }
-
-        public Board next() {
-            int[][] arr = new int[dim][];
-            for (int i = 0; i < dim; i++) {
-                arr[i] = Arrays.copyOf(tiles[i], tiles[i].length);
-            }
-            switch (status) {
-                case 0:
-                    if (valid(zeroro - 1)) {
-                        arr[zeroro - 1][zeroco] = 0;
-                        arr[zeroro][zeroco] = tiles[zeroro - 1][zeroco];
-                        status = 1;
-                        num--;
-                        break;
-                    }
-                case 1:
-                    if (valid(zeroro + 1)) {
-                        arr[zeroro + 1][zeroco] = 0;
-                        arr[zeroro][zeroco] = tiles[zeroro + 1][zeroco];
-                        status = 2;
-                        num--;
-                        break;
-                    }
-                case 2:
-                    if (valid(zeroco - 1)) {
-                        arr[zeroro][zeroco - 1] = 0;
-                        arr[zeroro][zeroco] = tiles[zeroro][zeroco - 1];
-                        status = 3;
-                        num--;
-                        break;
-                    }
-                case 3:
-                    if (valid(zeroco + 1)) {
-                        arr[zeroro][zeroco + 1] = 0;
-                        arr[zeroro][zeroco] = tiles[zeroro][zeroco + 1];
-                        status = 4;
-                        num--;
-                        break;
-                    }
-                default:
-                    throw new NoSuchElementException("no more element in next()");
-            }
-            return new Board(arr);
-        }
-
-        private boolean valid(int i) {
-            return i >= 0 && i < dim;
-        }
+    private boolean valid(int x, int y) {
+        return x >= 0 && x < dim && y >= 0 && y < dim;
     }
 
     // unit testing (not graded)
